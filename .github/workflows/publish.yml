@@ -52,7 +52,7 @@ jobs:
 
 
   check-if-already-exists:
-    name: Check if Image already exists
+    name: Check if Exists
     needs: [derive-tag]
     runs-on: ubuntu-latest
     steps:
@@ -84,6 +84,7 @@ jobs:
         run: echo "logging out of ACR"
 
   build-image:
+    name: Build
     runs-on: ubuntu-latest
     needs: [check-if-already-exists]
 
@@ -92,6 +93,7 @@ jobs:
         run: echo "running docker build --target=final"
 
   scan-image:
+    name: Scan
     runs-on: ubuntu-latest
     if: ${{ inputs.BypassImageScan != true }}
     needs: [build-image]
@@ -104,6 +106,7 @@ jobs:
         run: echo "scanning image"
 
   publish-image:
+    name: Publish
     runs-on: ubuntu-latest
     needs: [build-image, scan-image]
 
