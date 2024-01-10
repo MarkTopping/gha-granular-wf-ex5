@@ -42,21 +42,21 @@ jobs:
   deploy-to-test:
     name: TEST
     uses: ./.github/workflows/deploy-to-test.yml
-    with: 
-      image-tag: v0.0.1
+    #with: 
+    #  image-tag: v0.0.1
     needs: deploy-to-dev
 
   deploy-to-uat:
     name: UAT
     uses: ./.github/workflows/deploy-to-uat.yml
-    with: 
-      image-tag: v0.0.1
+    #with: 
+    #  image-tag: v0.0.1
     needs: deploy-to-test
           
   deploy-to-prd:
     name: PRD
     uses: ./.github/workflows/deploy-to-prd.yml
-    with: 
-      image-tag: v0.0.1
+    #with: 
+    #  image-tag: v0.0.1
     needs: deploy-to-uat
     
