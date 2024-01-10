@@ -11,15 +11,14 @@ on:
       required: true
       type: string
 
-  workflow_call:
-    inputs:
-      image-tag:
-      description: 'The image tag'
-      required: true
-      type: string
+  #workflow_call:
+  #  inputs:
+  #    image-tag:
+  #    description: 'The image tag'
+  #    required: true
+  #    type: string
     
 jobs:
-
   #derive-tag:
   #  uses: ./.github/workflows/derive-tag.yml  
           
@@ -28,8 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     #needs: [derive-tag]
     environment: dev
-    steps:
-    
+    steps:    
   
       - name: Grab Image Tag
         run: echo ${{ inputs.image-tag }}
