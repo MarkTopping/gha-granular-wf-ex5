@@ -1,0 +1,28 @@
+name: Code Scan
+
+run-name:  "#${{ github.run_number }}. Code Scan on ${{ github.ref_type }} '${{ github.ref_name }}'. Triggered by: ${{ github.triggering_actor }}"
+
+on:
+  # Allow for manual execution and to trigger Secondary region deployments
+  workflow_dispatch:
+  workflow_call:
+        
+  # Auto trigger when pushes to selected branch naming conventions occur
+  push: 
+    branches: [main, feat/**, feature/**, release/**]
+    paths-ignore: ['*.md']
+  # Auto trigger when a release is created
+  release:
+    types: [published]
+
+jobs:
+  code-scan:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.BypassCodeScan != true }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Download Vericode
+        run: echo "downloading Vericode"
+      - name: Scan
+        run: echo "scanning code"
