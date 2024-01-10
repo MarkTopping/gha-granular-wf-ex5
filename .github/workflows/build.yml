@@ -5,6 +5,8 @@ run-name:  "#${{ github.run_number }}. Build on ${{ github.ref_type }} '${{ gith
 on:
   # Allow for manual execution and to trigger Secondary region deployments
   workflow_dispatch:
+
+  workflow_call:
         
   # Auto trigger when pushes to selected branch naming conventions occur
   push: 
