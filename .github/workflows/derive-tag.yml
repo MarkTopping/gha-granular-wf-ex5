@@ -1,7 +1,7 @@
 name: Drive Image Tag
 
 on:
-  workflow_run:
+  workflow_call:
     
 jobs:
 
