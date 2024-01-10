@@ -49,8 +49,10 @@ jobs:
   
   publish-image:
     name: Image
-    uses: ./.github/workflows/publish.yml
     needs: [unit-test, derive-tag]
+    uses: ./.github/workflows/publish.yml
+    with:
+      image-tag: ${{ needs.derive-tag.outputs.docker-tag }}
 
   deploy-to-dev:
     name: DEV
