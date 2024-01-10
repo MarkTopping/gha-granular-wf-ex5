@@ -1,0 +1,80 @@
+name: Build Test Scan
+
+run-name:  "#${{ github.run_number }}. Build, Test, Scan on ${{ github.ref_type }} '${{ github.ref_name }}'. Triggered by: ${{ github.triggering_actor }}"
+
+on:
+  # Allow for manual execution and to trigger Secondary region deployments
+  workflow_dispatch:
+    inputs:
+      BypassCodeScan:
+        description: Bypass Code Scan?
+        type: boolean
+        required: true
+        default: false
+        
+  # Auto trigger when pushes to selected branch naming conventions occur
+  #push: 
+    #branches: [main, feat/**, feature/**, release/**]
+    #paths-ignore: ['*.md']
+  # Auto trigger when a release is created
+  #release:
+    #types: [published]
+
+jobs:
+
+  info:
+    name: Workflow context
+    runs-on: ubuntu-latest
+    #outputs:
+    #  run-id: ${{ github.run_id }}
+    #  run-attempt: ${{ github.run_attempt	}}
+    #  SHA: ${{ github.sha }}
+    #  tiggered-by: ${{ github.triggering_actor }}
+    #  inputs: ${{ toJSON(inputs) }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Get Short SHA
+        run: echo "git-sha=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+      - name: Capture Inputs
+        env:
+          INPUTS: ${{ toJSON(inputs) }}
+        run: echo ""
+      - name: Create output summary
+        run: |
+          echo "| Variable | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|:--|:--|" >> $GITHUB_STEP_SUMMARY
+          echo "| git-sha | ${{ env.git-sha }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| repository | ${{ github.repository }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| ref type | ${{ github.ref_type }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| ref name | ${{ github.ref_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| triggered by | ${{ github.triggering_actor }} |" >> $GITHUB_STEP_SUMMARY
+
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: Build
+        run: echo "running docker build --target=build"
+      - name: Test
+        run: echo "running docker build --target=test"
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Lint Tool
+        run: echo "Setting up Lint tool"
+      - name: Lint Code
+        run: echo "Linting code"
+
+  code-scan:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.BypassCodeScan != true }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Download Vericode
+        run: echo "downloading Vericode"
+      - name: Scan
+        run: echo "scanning code"

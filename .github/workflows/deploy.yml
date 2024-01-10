@@ -1,0 +1,160 @@
+name: Deploy To ?
+
+run-name: "#${{ github.run_number }}. Deploy ${{ github.ref_type }} '${{ github.ref_name }}'. Triggered by: ${{ github.triggering_actor }}"
+
+on:
+  # Workflow can be manually triggered
+  workflow_dispatch:
+    inputs:
+      IgnoreDependencyChain:
+        description: 'Bypass dependencies?'
+        type: boolean
+        required: true
+        default: false
+      DeployToDev:
+        description: 'Deploy to Dev?'
+        type: boolean
+        required: true
+        default: false
+      DeployToTest:
+        description: 'Deploy to Test?'
+        type: boolean
+        required: true
+        default: false
+      DeployToUat:
+        description: 'Deploy to UAT?'
+        type: boolean
+        required: true
+        default: false
+      DeployToPrd:
+        description: 'Deploy to Prd?'
+        type: boolean
+        required: true
+        default: false
+      DeployToPrdDR:
+        description: 'Deploy to Prd DR?'
+        type: boolean
+        required: true
+        default: false
+    
+jobs:
+
+  derive-tag:
+    name: Derive Image Tag
+    runs-on: ubuntu-latest
+    outputs:
+      docker-tag: ${{ steps.output-tag.outputs.docker-tag }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Get Short SHA
+        run: echo "git-sha=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+      
+      - name: Create Docker If Else
+        run: |
+          if [ "${{ github.ref_type }}" == "tag" ]; then
+            echo "docker-tag=${{ github.ref_name }}" >> $GITHUB_ENV
+          else
+            echo "docker-tag=sha-${{ env.git-sha }}" >> $GITHUB_ENV
+          fi
+        
+      - name: Output Tag
+        id: output-tag
+        run: |
+          echo "docker-tag=${{ env.docker-tag }}" >> "$GITHUB_OUTPUT"
+          echo "Deployment triggered on a git ${{ github.ref_type }}, so the Docker Tag has been set to '**${{ env.docker-tag }}'**" >> $GITHUB_STEP_SUMMARY
+
+  
+          
+  deploy-to-dev:
+    name: DEV
+    runs-on: ubuntu-latest
+    needs: [derive-tag]
+    #if: ${{ inputs.DeployToDev == true }}
+    if: ${{ inputs.IgnoreDependencyChain == false }}
+    environment: dev
+    steps:
+
+      - name: Grab Image Tag
+        env:
+          docker-tag: ${{ needs.derive-tag.outputs.docker-tag }}
+        run: |
+          echo "determining the image tag based off whatever versioning logic used"
+          echo "tag equals: ${{ env.docker-tag }}"
+          
+      - name: Deploy to Dev
+        run: echo "deploying via helm"
+
+  deploy-to-test:
+    name: TEST
+    runs-on: ubuntu-latest
+    needs: [deploy-to-dev]
+    #if: ${{ always() && (inputs.DeployToTest == true && (needs.deploy-to-dev.result == 'success' || inputs.IgnoreDependencyChain == true)) }}
+    if: ${{ always() && (inputs.DeployToTest == true || inputs.DeployToUat == true || inputs.DeployToPrd == true && (needs.deploy-to-dev.result == 'success' || inputs.IgnoreDependencyChain == true)) }}
+    environment: test
+    steps:
+
+      - name: Grab Image Tag
+        env:
+          docker-tag: ${{ needs.derive-tag.outputs.docker-tag }}
+        run: |
+          echo "determining the image tag based off whatever versioning logic used"
+          echo "tag equals: ${{ env.docker-tag }}"
+    
+      - name: Deploy to Test
+        run: echo "deploying via helm"
+
+  deploy-to-uat:
+    name: UAT
+    runs-on: ubuntu-latest
+    needs: [deploy-to-test]
+    # if: ${{ always() && (inputs.DeployToUat == true && (needs.deploy-to-test.result == 'success' || inputs.IgnoreDependencyChain == true)) }}
+    if: ${{ always() && (inputs.DeployToUat == true || inputs.DeployToPrd == true && (needs.deploy-to-test.result == 'success' || inputs.IgnoreDependencyChain == true)) }}
+    environment: uat
+    steps:
+
+      - name: Grab Image Tag
+        env:
+          docker-tag: ${{ needs.derive-tag.outputs.docker-tag }}
+        run: |
+          echo "determining the image tag based off whatever versioning logic used"
+          echo "tag equals: ${{ env.docker-tag }}"
+          
+      - name: Deploy to UAT
+        run: echo "deploying via helm"
+
+  deploy-to-prd-primary:
+    name: PRD Primary
+    runs-on: ubuntu-latest
+    needs: [deploy-to-uat]
+    if: ${{ always() && (inputs.DeployToPrd == true && (needs.deploy-to-uat.result == 'success' || inputs.IgnoreDependencyChain == true)) }}
+    environment: prd
+    steps:
+
+      - name: Grab Image Tag
+        env:
+          docker-tag: ${{ needs.derive-tag.outputs.docker-tag }}
+        run: |
+          echo "determining the image tag based off whatever versioning logic used"
+          echo "tag equals: ${{ env.docker-tag }}"
+          
+      - name: Deploy to PRD Primary
+        run: echo "deploying via helm"
+
+  deploy-to-prd-secondary:
+    name: PRD Secondary
+    runs-on: ubuntu-latest
+    needs: [deploy-to-uat]
+    if: ${{ always() && (inputs.DeployToPrdDR == true && (needs.deploy-to-uat.result == 'success' || inputs.IgnoreDependencyChain == true)) }}
+    environment: prd
+    steps:
+
+      - name: Grab Image Tag
+        env:
+          docker-tag: ${{ needs.derive-tag.outputs.docker-tag }}
+        run: |
+          echo "determining the image tag based off whatever versioning logic used"
+          echo "tag equals: ${{ env.docker-tag }}"
+          
+      - name: Deploy to PRD Secondary
+        run: echo "deploying via helm"

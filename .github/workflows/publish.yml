@@ -1,0 +1,138 @@
+name: Publish Image
+
+run-name:  "#${{ github.run_number }}. Publish Image on ${{ github.ref_type }} '${{ github.ref_name }}'. Triggered by: ${{ github.triggering_actor }}"
+
+on:
+  # Allow for manual execution and to trigger Secondary region deployments
+  workflow_dispatch:
+    inputs:
+      BypassImageScan:
+        description: Bypass Image Scan?
+        type: boolean
+        required: true
+        default: false
+      SimulateImageAlreadyExists:
+        description: Simulate Image Already Exists?
+        type: boolean
+        required: true
+        default: false
+
+jobs:
+
+  info:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log Workflow Information / Inputs
+        env:
+          INPUTS: ${{ toJSON(inputs) }}
+        run: |
+          echo *** Workflow Context ***
+          echo Repo: ${{ github.repository }}
+          echo Ref: ${{ github.ref_type }} / {{ github.ref_name }}
+          echo Run Number: ${{ github.run_number }}
+          echo Run Attempt: ${{ github.run_attempt }}
+          echo Git Long SHA: ${{ github.sha }}
+          echo Triggered by: ${{ github.triggering_actor }}
+          echo ""
+          echo "*** Inputs ***"
+          echo $INPUTS
+          echo
+          echo *** Other Useful Stuff ***
+          echo ABC
+          echo XYZ
+
+  derive-tag:
+    name: Derive Image Tag
+    runs-on: ubuntu-latest
+    outputs:
+      docker-tag: ${{ steps.output-tag.outputs.docker-tag }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Get Short SHA
+        run: echo "git-sha=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+      
+      - name: Create Docker If Else
+        run: |
+          if [ "${{ github.ref_type }}" == "tag" ]; then
+            echo "docker-tag=${{ github.ref_name }}" >> $GITHUB_ENV
+          else
+            echo "docker-tag=sha-${{ env.git-sha }}" >> $GITHUB_ENV
+          fi
+        
+      - name: Output Tag
+        id: output-tag
+        run: |
+          echo "docker-tag=${{ env.docker-tag }}" >> "$GITHUB_OUTPUT"
+          echo "Publish was exectuted on a git ${{ github.ref_type }}, so the Docker Tag has been set to '**${{ env.docker-tag }}'**" >> $GITHUB_STEP_SUMMARY
+
+
+  check-if-already-exists:
+    name: Check if Image already exists
+    needs: [derive-tag]
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          docker-tag: ${{ needs.derive-tag.outputs.docker-tag }}
+        run: echo "Docker tag captured from previous job as ${{ env.docker-tag }}"
+      - name: Login to ACR
+        run: echo "logging into ACR"
+      - name: Determine Image Tag
+        env:
+          docker-tag: ${{ needs.derive-tag.outputs.docker-tag }}
+        run: |
+          echo "determining the image tag based off whatever versioning logic used"
+          echo "tag equals: ${{ env.docker-tag }}"
+      - name: Simulate Image Exists Check
+        if: ${{ inputs.SimulateImageAlreadyExists == true }}
+        run: |
+          echo "Simulating image already exists. Step will force-fail"
+          run exit 1
+      - name: Check if image is already published
+        env:
+          docker-tag: ${{ needs.derive-tag.outputs.docker-tag }}
+        run: |
+          echo "Checking if image already exists in the container registry"
+          echo "Image exists equals: ${{ inputs.SimulateImageAlreadyExists }}"
+          echo "Tag equals: ${{ env.docker-tag }}"
+      # Issue. This won't run if the step fails. Does this matter? 
+      - name: Logout of ACR
+        run: echo "logging out of ACR"
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [check-if-already-exists]
+
+    steps:
+      - name: Build
+        run: echo "running docker build --target=final"
+
+  scan:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.BypassImageScan != true }}
+    needs: [build]
+    
+    steps:
+      - name: download Trivy
+        run: echo "downloading Trivy"
+    
+      - name: Aqua Image Scan
+        run: echo "scanning image"
+
+  publish:
+    runs-on: ubuntu-latest
+    if: ${{ always() && (needs.scan.result == 'success' || inputs.BypassImageScan == true ) }}
+    needs: [build, scan]
+
+    steps:
+      - name: Login to ACR
+        run: echo "logging into ACR"
+
+      - name: Tag Image
+        run: echo "running docker tag..."
+
+      - name: Push Image
+        run: echo "publishing image with tag ???"
+
+      - name: Logout of ACR
+        run: echo "logging out of ACR"
