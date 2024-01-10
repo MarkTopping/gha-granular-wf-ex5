@@ -54,7 +54,7 @@ jobs:
 
   deploy-to-dev:
     name: DEV
-    needs: [publish-image]
+    needs: [derive-tag, publish-image]
     uses: ./.github/workflows/deploy-to-dev.yml
     with: 
       image-tag: ${{ needs.derive-tag.outputs.docker-tag }}
@@ -63,20 +63,20 @@ jobs:
     name: TEST
     uses: ./.github/workflows/deploy-to-test.yml
     with: 
-      image-tag: v0.0.2
-    needs: deploy-to-dev
+      image-tag: ${{ needs.derive-tag.outputs.docker-tag }}
+    needs: [derive-tag, deploy-to-dev]
 
   deploy-to-uat:
     name: UAT
     uses: ./.github/workflows/deploy-to-uat.yml
     with: 
-      image-tag: v0.0.3
-    needs: deploy-to-test
+      image-tag: ${{ needs.derive-tag.outputs.docker-tag }}
+    needs: [derive-tag, deploy-to-test]
           
   deploy-to-prd:
     name: PRD
     uses: ./.github/workflows/deploy-to-prd.yml
     with: 
-      image-tag: v0.0.4
-    needs: deploy-to-uat
+      image-tag: ${{ needs.derive-tag.outputs.docker-tag }}
+    needs: [derive-tag, deploy-to-uat]
     
