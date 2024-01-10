@@ -1,4 +1,4 @@
-name: Drive Image Tag
+name: Derive Image Tag
 
 on:
   workflow_call:
