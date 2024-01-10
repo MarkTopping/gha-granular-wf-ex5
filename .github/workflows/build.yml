@@ -1,6 +1,6 @@
 name: Build
 
-run-name:  "#${{ github.run_number }}. Build, Test, Scan on ${{ github.ref_type }} '${{ github.ref_name }}'. Triggered by: ${{ github.triggering_actor }}"
+run-name:  "#${{ github.run_number }}. Build on ${{ github.ref_type }} '${{ github.ref_name }}'. Triggered by: ${{ github.triggering_actor }}"
 
 on:
   # Allow for manual execution and to trigger Secondary region deployments
