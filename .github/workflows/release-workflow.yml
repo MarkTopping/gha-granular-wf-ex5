@@ -22,34 +22,20 @@ jobs:
     uses: ./.github/workflows/publish.yml
     needs: [unit-test]
 
-  derive-tag:
-    uses: ./.github/workflows/derive-tag.yml
-
   deploy-to-dev:
     uses: ./.github/workflows/deploy-to-dev.yml
-    needs: [publish-image, derive-tag]
+    needs: [publish-image]
 
   deploy-to-test:
     uses: ./.github/workflows/deploy-to-test.yml
-    needs: [derive-tag, deploy-to-dev]
+    needs: deploy-to-dev
 
   deploy-to-uat:
     uses: ./.github/workflows/deploy-to-uat.yml
-    needs: [derive-tag, deploy-to-test]
+    needs: deploy-to-test
           
   deploy-to-prd:
     name: Deploy to PRD
-    runs-on: ubuntu-latest
-    needs: [derive-tag, deploy-to-uat]
-    environment: prd
-    steps:
-
-      - name: Grab Image Tag
-        env:
-          docker-tag: ${{ needs.derive-tag.outputs.docker-tag }}
-        run: |
-          echo "determining the image tag based off whatever versioning logic used"
-          echo "tag equals: ${{ env.docker-tag }}"
-          
-      - name: Deploy to PRD
-        run: echo "deploying via helm"
+    uses: ./.github/workflows/deploy-to-prd.yml
+    needs: deploy-to-uat
+    
