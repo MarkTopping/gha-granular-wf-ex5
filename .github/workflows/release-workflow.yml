@@ -9,33 +9,54 @@ on:
 jobs:
 
   build:
+    name: Build
     uses: ./.github/workflows/build.yml
 
   code-scan:
+    name: Scan
     uses: ./.github/workflows/code-scan.yml
 
   unit-test:
+    name: Test
     uses: ./.github/workflows/unit-test.yml
     needs: [build]
   
   publish-image:
+    name: Image
     uses: ./.github/workflows/publish.yml
     needs: [unit-test]
 
-  deploy-to-dev:
-    uses: ./.github/workflows/deploy-to-dev.yml
-    needs: [publish-image]
+  derive-tag:
+    runs-on: ubuntu-latest
+    needs: publish-image
+    steps:
+      - run: echo "derive tag... this would be passed into downstream jobs"
 
+  deploy-to-dev:
+    name: DEV
+    uses: ./.github/workflows/deploy-to-dev.yml
+    with: 
+      image-tag: v0.0.1
+    needs: [publish-image]
+  
   deploy-to-test:
+    name: TEST
     uses: ./.github/workflows/deploy-to-test.yml
+    with: 
+      image-tag: v0.0.1
     needs: deploy-to-dev
 
   deploy-to-uat:
+    name: UAT
     uses: ./.github/workflows/deploy-to-uat.yml
+    with: 
+      image-tag: v0.0.1
     needs: deploy-to-test
           
   deploy-to-prd:
-    name: Deploy to PRD
+    name: PRD
     uses: ./.github/workflows/deploy-to-prd.yml
+    with: 
+      image-tag: v0.0.1
     needs: deploy-to-uat
     
