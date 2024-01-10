@@ -1,0 +1,31 @@
+name: Drive Image Tag
+
+on:
+  workflow_run:
+    
+jobs:
+
+  derive-image-tag:
+    name: Derive Image Tag
+    runs-on: ubuntu-latest
+    outputs:
+      docker-tag: ${{ steps.output-tag.outputs.docker-tag }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Get Short SHA
+        run: echo "git-sha=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+      
+      - name: Create Docker If Else
+        run: |
+          if [ "${{ github.ref_type }}" == "tag" ]; then
+            echo "docker-tag=${{ github.ref_name }}" >> $GITHUB_ENV
+          else
+            echo "docker-tag=sha-${{ env.git-sha }}" >> $GITHUB_ENV
+          fi
+        
+      - name: Output Tag
+        id: output-tag
+        run: |
+          echo "docker-tag=${{ env.docker-tag }}" >> "$GITHUB_OUTPUT"
+          echo "Deployment triggered on a git ${{ github.ref_type }}, so the Docker Tag has been set to '**${{ env.docker-tag }}'**" >> $GITHUB_STEP_SUMMARY
