@@ -1,0 +1,32 @@
+name: Build
+
+run-name:  "#${{ github.run_number }}. Build, Test, Scan on ${{ github.ref_type }} '${{ github.ref_name }}'. Triggered by: ${{ github.triggering_actor }}"
+
+on:
+  # Allow for manual execution and to trigger Secondary region deployments
+  workflow_dispatch:
+        
+  # Auto trigger when pushes to selected branch naming conventions occur
+  push: 
+    branches: [main, feat/**, feature/**, release/**]
+    paths-ignore: ['*.md']
+  # Auto trigger when a release is created
+  release:
+    types: [published]
+
+jobs:
+
+  print-context:
+    uses: ./.github/workflows/print-context.yml
+
+  code-scan:
+    uses: ./.github/workflows/code-scan.yml
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [print-context]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: Build
+        run: echo "running docker build --target=build"
