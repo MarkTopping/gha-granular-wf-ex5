@@ -1,0 +1,57 @@
+name: Deploy To PRD
+
+run-name: "#${{ github.run_number }}. Deploy to Production ran on ${{ github.ref_type }} '${{ github.ref_name }}'. Triggered by: ${{ github.triggering_actor }}"
+
+on:
+  # Workflow can be manually triggered
+  workflow_dispatch:
+    inputs:
+      deployToDev:
+        description: 'Also Deploy To Dev?'
+        type: boolean
+        required: true
+        default: true
+      deployToTest:
+        description: 'Also Deploy to Test?'
+        type: boolean
+        required: true
+        default: true
+      deployToUat:
+        description: 'Also Deploy to UAT?'
+        type: boolean
+        required: true
+        default: true
+
+jobs:
+  
+  derive-tag:
+    uses: ./.github/workflows/derive-tag.yml
+
+  deploy-to-dev:
+    uses: ./.github/workflows/deploy-to-dev.yml
+    if: ${{ inputs.deployToDev == true }}
+
+  deploy-to-test:
+    uses: ./.github/workflows/deploy-to-test.yml
+    if: ${{ inputs.deployToTest == true }}
+
+  deploy-to-uat:
+    uses: ./.github/workflows/deploy-to-uat.yml
+    if: ${{ inputs.deployToUat == true }}
+          
+  deploy-to-prd:
+    name: Deploy to PRD
+    runs-on: ubuntu-latest
+    needs: [derive-tag, deploy-to-dev, deploy-to-test, deploy-to-uat]
+    environment: prd
+    steps:
+
+      - name: Grab Image Tag
+        env:
+          docker-tag: ${{ needs.derive-tag.outputs.docker-tag }}
+        run: |
+          echo "determining the image tag based off whatever versioning logic used"
+          echo "tag equals: ${{ env.docker-tag }}"
+          
+      - name: Deploy to PRD
+        run: echo "deploying via helm"
