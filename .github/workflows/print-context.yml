@@ -1,0 +1,31 @@
+name: Print Context
+
+run-name:  "#${{ github.run_number }}. Build, Test, Scan on ${{ github.ref_type }} '${{ github.ref_name }}'. Triggered by: ${{ github.triggering_actor }}"
+
+on:
+  # Allow for manual execution and to trigger Secondary region deployments
+  workflow_call:
+      
+jobs:
+
+  print-context:
+    name: Workflow context
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Get Short SHA
+        run: echo "git-sha=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+      - name: Capture Inputs
+        env:
+          INPUTS: ${{ toJSON(inputs) }}
+        run: echo ""
+      - name: Create output summary
+        run: |
+          echo "| Variable | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|:--|:--|" >> $GITHUB_STEP_SUMMARY
+          echo "| git-sha | ${{ env.git-sha }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| repository | ${{ github.repository }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| ref type | ${{ github.ref_type }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| ref name | ${{ github.ref_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| triggered by | ${{ github.triggering_actor }} |" >> $GITHUB_STEP_SUMMARY
