@@ -5,41 +5,16 @@ run-name:  "#${{ github.run_number }}. Publish Image on ${{ github.ref_type }} '
 on:
   # Allow for manual execution and to trigger Secondary region deployments
   workflow_dispatch:
-    inputs:
-      BypassImageScan:
-        description: Bypass Image Scan?
-        type: boolean
-        required: true
-        default: false
-      SimulateImageAlreadyExists:
-        description: Simulate Image Already Exists?
-        type: boolean
-        required: true
-        default: false
+
+  workflow_call:
+
+  release:
+    types: [published]
 
 jobs:
 
-  info:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Log Workflow Information / Inputs
-        env:
-          INPUTS: ${{ toJSON(inputs) }}
-        run: |
-          echo *** Workflow Context ***
-          echo Repo: ${{ github.repository }}
-          echo Ref: ${{ github.ref_type }} / {{ github.ref_name }}
-          echo Run Number: ${{ github.run_number }}
-          echo Run Attempt: ${{ github.run_attempt }}
-          echo Git Long SHA: ${{ github.sha }}
-          echo Triggered by: ${{ github.triggering_actor }}
-          echo ""
-          echo "*** Inputs ***"
-          echo $INPUTS
-          echo
-          echo *** Other Useful Stuff ***
-          echo ABC
-          echo XYZ
+  build-and-test:
+    uses: ./.github/workflows/unit-test.yml
 
   derive-tag:
     name: Derive Image Tag
