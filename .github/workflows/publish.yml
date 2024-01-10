@@ -6,7 +6,17 @@ on:
   # Allow for manual execution and to trigger Secondary region deployments
   workflow_dispatch:
 
+  # or called upon by other workflows
   workflow_call:
+    inputs:
+      image-tag:
+        description: 'The image tag'
+        required: true
+        type: string
+    outputs:
+      tag: 
+        description: 'The image tag derived if it was not provided as an input' 
+        value: ${{ jobs.derive-tag.outputs.docker-tag }}
 
   release:
     types: [published]
@@ -26,7 +36,9 @@ jobs:
       
       - name: Create Docker If Else
         run: |
-          if [ "${{ github.ref_type }}" == "tag" ]; then
+          if [ ! -z "${{ inputs.image-tag }}"]; then
+            echo "docker-tag=${{ inputs.image-tag }}" >> $GITHUB_ENV
+          elif [ "${{ github.ref_type }}" == "tag" ]; then
             echo "docker-tag=${{ github.ref_name }}" >> $GITHUB_ENV
           else
             echo "docker-tag=sha-${{ env.git-sha }}" >> $GITHUB_ENV
@@ -36,7 +48,7 @@ jobs:
         id: output-tag
         run: |
           echo "docker-tag=${{ env.docker-tag }}" >> "$GITHUB_OUTPUT"
-          echo "Publish was exectuted on a git ${{ github.ref_type }}, so the Docker Tag has been set to '**${{ env.docker-tag }}'**" >> $GITHUB_STEP_SUMMARY
+          echo "Docker Tag has been set to '**${{ env.docker-tag }}'**" >> $GITHUB_STEP_SUMMARY
 
 
   check-if-already-exists:
