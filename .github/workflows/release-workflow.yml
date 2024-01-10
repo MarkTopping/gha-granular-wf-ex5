@@ -20,43 +20,63 @@ jobs:
     name: Test
     uses: ./.github/workflows/unit-test.yml
     needs: [build]
+
+  derive-tag:
+    name: Derive Image Tag
+    runs-on: ubuntu-latest
+    outputs:
+      docker-tag: ${{ steps.output-tag.outputs.docker-tag }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Get Short SHA
+        run: echo "git-sha=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+      
+      - name: Create Docker If Else
+        run: |
+          if [ "${{ github.ref_type }}" == "tag" ]; then
+            echo "docker-tag=${{ github.ref_name }}" >> $GITHUB_ENV
+          else
+            echo "docker-tag=sha-${{ env.git-sha }}" >> $GITHUB_ENV
+          fi
+        
+      - name: Output Tag
+        id: output-tag
+        run: |
+          echo "docker-tag=${{ env.docker-tag }}" >> "$GITHUB_OUTPUT"
+          echo "Publish was exectuted on a git ${{ github.ref_type }}, so the Docker Tag has been set to '**${{ env.docker-tag }}'**" >> $GITHUB_STEP_SUMMARY
+
   
   publish-image:
     name: Image
     uses: ./.github/workflows/publish.yml
-    needs: [unit-test]
-
-  derive-tag:
-    runs-on: ubuntu-latest
-    needs: publish-image
-    steps:
-      - run: echo "derive tag... this would be passed into downstream jobs"
+    needs: [unit-test, derive-tag]
 
   deploy-to-dev:
     name: DEV
+    needs: [publish-image]
     uses: ./.github/workflows/deploy-to-dev.yml
     with: 
-      image-tag: v0.0.1
-    needs: [publish-image]
+      image-tag: ${{ needs.derive-tag.outputs.docker-tag }}
   
   deploy-to-test:
     name: TEST
     uses: ./.github/workflows/deploy-to-test.yml
-    #with: 
-    #  image-tag: v0.0.1
+    with: 
+      image-tag: v0.0.2
     needs: deploy-to-dev
 
   deploy-to-uat:
     name: UAT
     uses: ./.github/workflows/deploy-to-uat.yml
-    #with: 
-    #  image-tag: v0.0.1
+    with: 
+      image-tag: v0.0.3
     needs: deploy-to-test
           
   deploy-to-prd:
     name: PRD
     uses: ./.github/workflows/deploy-to-prd.yml
-    #with: 
-    #  image-tag: v0.0.1
+    with: 
+      image-tag: v0.0.4
     needs: deploy-to-uat
     
