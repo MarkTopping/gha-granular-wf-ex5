@@ -4,12 +4,17 @@ run-name: "#${{ github.run_number }}. Deploy to Dev ran on ${{ github.ref_type }
 
 on:
   # Workflow can be manually triggered
-  workflow_dispatch: 
+  workflow_dispatch:
+    inputs:
+      image-tag:
+      description: 'Specify the Image Tag to deploy:'
+      required: true
 
   workflow_call:
     inputs:
       image-tag:
       description: 'The image tag'
+      required: true
     
 jobs:
 
